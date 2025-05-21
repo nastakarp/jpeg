@@ -1,5 +1,5 @@
 import numpy as np
-from functions.core.ac_variable_coding import encode_ac_coefficients, decode_ac_coefficients
+from functions.core.huffman_ac_codec import encode_ac_coefficients, decode_ac_coefficients
 
 
 def print_debug_info(ac_input, bitstream, decoded, expected):

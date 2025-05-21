@@ -1,48 +1,51 @@
 import numpy as np
+from functools import lru_cache
 
 
-def dct_matrix(N):
-    """
-    Генерирует матрицу DCT-II для N-точечного преобразования.
+# Кэширование матрицы DCT
+@lru_cache(maxsize=None)
+def create_dct_matrix(N):
+    C = np.zeros((N, N))
+    sqrt_N = np.sqrt(N)
+    sqrt_2_N = np.sqrt(2 / N)
 
-    Параметры:
-        N (int): Размер преобразования (обычно 8 для JPEG)
-
-    Возвращает:
-        np.ndarray: Матрица DCT размера N x N
-    """
     n = np.arange(N)
-    k = n.reshape(N, 1)
-    # Коэффициенты масштабирования
-    C = np.where(n == 0, 1 / np.sqrt(2), 1) * np.sqrt(2 / N)
-    # Ядро DCT
-    return C * np.cos((2 * k + 1) * n * np.pi / (2 * N))
+    for k in range(N):
+        if k == 0:
+            C[k, :] = 1 / sqrt_N
+        else:
+            C[k, :] = sqrt_2_N * np.cos(np.pi * (2 * n + 1) * k / (2 * N))
+    return C
 
 
+# Основная функция DCT (переименованная в dct2)
 def dct2(block):
-    """
-    Быстрое 2D DCT-II через матричные операции.
-    (~300x быстрее наивной реализации)
-
-    Параметры:
-        block (np.ndarray): Блок изображения N x N
-
-    Возвращает:
-        np.ndarray: DCT-коэффициенты блока
-    """
-    D = dct_matrix(block.shape[0])
-    return D @ block @ D.T  # Эквивалентно двум 1D DCT
+    N = block.shape[0]
+    C = create_dct_matrix(N)
+    return np.dot(np.dot(C, block), C.T)
 
 
-def idct2(dct_block):
-    """
-    Быстрое обратное 2D DCT-II через матричные операции.
+# Основная функция обратного DCT (переименованная в idct2)
+def idct2(block):
+    N = block.shape[0]
+    C = create_dct_matrix(N)
+    return np.dot(np.dot(C.T, block), C)
 
-    Параметры:
-        dct_block (np.ndarray): Блок DCT-коэффициентов N x N
 
-    Возвращает:
-        np.ndarray: Восстановленный блок изображения
-    """
-    D = dct_matrix(dct_block.shape[0])
-    return D.T @ dct_block @ D  # Транспонированная матрица для обратного преобразования
+# Функция для обработки всех блоков (если нужна)
+def apply_dct_to_blocks(blocks):
+    dct_blocks = np.zeros_like(blocks, dtype=np.float32)
+    for i in range(blocks.shape[0]):
+        for j in range(blocks.shape[1]):
+            dct_blocks[i, j] = dct2(blocks[i, j])
+    return dct_blocks
+
+
+# Функция для обратного преобразования всех блоков (если нужна)
+def apply_idct_to_blocks(blocks):
+    idct_blocks = np.zeros_like(blocks, dtype=np.uint8)
+    for i in range(blocks.shape[0]):
+        for j in range(blocks.shape[1]):
+            idct_block = idct2(blocks[i, j])
+            idct_blocks[i, j] = np.clip(np.round(idct_block), 0, 255).astype(np.uint8)
+    return idct_blocks

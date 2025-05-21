@@ -1,5 +1,5 @@
 import numpy as np
-from functions.core.dc_variable_coding import encode_dc_coefficients, decode_dc_coefficients
+from functions.core.dc_encoding import encode_dc_coefficients, decode_dc_coefficients
 
 
 def print_debug_info(input_data, bitstream, decoded, expected):
